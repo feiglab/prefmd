@@ -94,7 +94,7 @@ def run(arg, par, cons=None):
     #
     system = psf.createSystem(ff, nonbondedMethod=PME, \
                               switchDistance=0.8*nanometers,\
-                              nonbondedCutoff=0.9*nanometers,\
+                              nonbondedCutoff=1.0*nanometers,\
                               constraints=HBonds)
 
     if par['lang']:

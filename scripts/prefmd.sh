@@ -119,6 +119,7 @@ convpdb.pl -nsel CA solute.pdb > solute.ca.pdb
 nsol=`grep ATOM solute.pdb | wc -l`
 awk '/ATOM/ {print $2}' solute.ca.pdb > ca.list
 
+export CHARMMEXEC=$CHARMMEXEC_OpenMM
 for run in $(seq 1 $mdruns); do
   mdCHARMM.pl -par $par -cons $cons -restout md.$run.restart -trajout md.$run.dcd -log md.$run.log -final md.$run.pdb md.prod.init.pdb
   mdconv -out solute.$run.dcd -atoms 1:$nsol md.$run.dcd 

@@ -11,7 +11,7 @@
  * OpenMM
     * http://openmm.org/
  * locPREFMD
-    *
+    * http://github.com/feiglab/locprefmd.git
  * RWplus 
     * http://zhanglab.ccmb.med.umich.edu/RW/
 

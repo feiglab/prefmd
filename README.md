@@ -34,7 +34,6 @@
     * RWPLUS_HOME: path to the RWPLUS home directory
  * Then, put those environments to the shell
     * source $PREFMD/scripts/prefmd.bashrc
- * You can check the environment settings by using a script, $PREFMD/scripts/check_prefmd_environment.py
 
 ## 2. How to use PREFMD
 2.1. Prepare a input protein structure in PDB format

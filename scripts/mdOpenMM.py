@@ -12,6 +12,7 @@ class CHARMMparam(dict):
     def __init__(self):
         self["xpar"] = None
         self["xtop"] = None
+        self["pstream"] = None
         self["dyntstep"] = 0.002
         self["dynsteps"] = 0
         self["dynoutfrq"] = 5000
@@ -19,6 +20,13 @@ class CHARMMparam(dict):
         self["lang"] = True
         self["langfbeta"] = 0.01
         self["boxsize"] = [None, None, None]
+    def toppar(self):
+        toppar = []
+        toppar.extend(self['xpar'].split(":"))
+        toppar.extend(self['xtop'].split(":"))
+        if self['pstream'] is not None:
+            toppar.extend(self['pstream'].split(":"))
+        return tuple(toppar)
     def __getitem__(self, key):
         if key in self:
             return dict.__getitem__(self, key)
@@ -64,6 +72,8 @@ class CHARMMparam(dict):
 
 class CHARMMcons:
     def __init__(self, par):
+        if par[0].lower() != 'ca':
+            sys.exit("Error: it is not supported cons type %s\n"%par[0])
         if par[0].lower() in ['ca','cb', 'heavy']:
             self.atoms = [par[0].upper()]
         elif par[0].lower() == 'cab':
@@ -76,13 +86,53 @@ class CHARMMcons:
         r = x[0].split(":")
         self.residues = range(int(r[0]), int(r[1])+1)
         self.force_const = float(x[1])
+        if len(x) >= 3:
+            self.bottom_radius = float(x[2])
+        else:
+            self.bottom_radius = 0.0
+
+def construct_restraint(psf, cons, ref):
+    if cons.bottom_radius == 0.0:
+        restraint = CustomExternalForce("k0*dsq ; dsq=((x-x0)^2+(y-y0)^2+(z-z0)^2)")
+    else:
+        restraint = CustomExternalForce("k0*(max(d-d0, 0.0))^2 ; d=sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)")
+        restraint.addGlobalParameter("d0", cons.bottom_radius*angstroms)
+
+    restraint.addPerParticleParameter("x0")
+    restraint.addPerParticleParameter("y0")
+    restraint.addPerParticleParameter("z0")
+    restraint.addPerParticleParameter('k0')
+
+    calphaIndex = []
+    for i,atom in enumerate(psf.topology.atoms()):
+        if atom.name == 'CA':
+            calphaIndex.append(i)
+    #
+    atom_s = [atom for atom in ref.topology.atoms()]
+    #
+    k = -1
+    for i,atom_crd in enumerate(ref.positions):
+        if ref.atom[1][i] not in cons.atoms:
+            continue
+        #
+        k += 1
+        if ref.atom[0][i] in cons.residues:
+            mass = atom_s[i].element.mass
+            force_const = cons.force_const*mass*kilocalories_per_mole/angstroms**2
+            parameters = list(atom_crd.value_in_unit(nanometers))
+            parameters.append(force_const)
+            restraint.addParticle(calphaIndex[k], parameters)
+    return restraint
 
 def run(arg, par, cons=None):
-    ff = CharmmParameterSet(par['xtop'], par['xpar'])
+    #
+    ff = CharmmParameterSet(*par.toppar())
     psf = CharmmPsfFile(arg.input_psf[0])
     psf.setBox(par['boxsize'][0], par['boxsize'][1], par['boxsize'][2])
-    pdb = CharmmCrdFile(arg.input_psf[1])
-    #pdb = PDBFile(arg.input_pdb)
+    if arg.input_psf[1].endswith("crd"):
+        pdb = CharmmCrdFile(arg.input_psf[1])
+    elif arg.input_psf[1].endswith("pdb"):
+        pdb = PDBFile(arg.input_psf[1])
     if cons is not None:
         if cons.ref_pdb == 'self':
             ref = pdb
@@ -105,27 +155,15 @@ def run(arg, par, cons=None):
         integrator = None
     #
     if cons is not None:
-        restraint = CustomExternalForce("k*((x-x0)^2+(y-y0)^2+(z-z0)^2)")
-        restraint.addGlobalParameter("k", cons.force_const*kilocalories_per_mole/angstroms**2)
-        restraint.addPerParticleParameter("x0")
-        restraint.addPerParticleParameter("y0")
-        restraint.addPerParticleParameter("z0")
-        n = 0
-        for i,atom_crd in enumerate(ref.positions):
-            if ref.atom[0][i] in cons.residues and \
-                    (ref.atom[1][i] in cons.atoms or \
-                     (cons.atoms[0] == 'HEAVY' and ref.atom[1][i][0] in ['C','N','O','S'])):
-                restraint.addParticle(i, atom_crd.value_in_unit(nanometers))
-                n += 1
-        system.addForce(restraint)
+        system.addForce(construct_restraint(psf, cons, ref))
     #
     simulation = Simulation(psf.topology, system, integrator)
     simulation.context.setPositions(pdb.positions)
     if arg.restart is not None:
         with open(arg.restart, 'rb') as fp:
             simulation.context.loadCheckpoint(fp.read())
-
-    simulation.context.setVelocitiesToTemperature(par['dyntemp']*kelvin)
+    else:
+        simulation.context.setVelocitiesToTemperature(par['dyntemp']*kelvin)
     if arg.trajout is not None:
         simulation.reporters.append(DCDReporter(arg.trajout, par['dynoutfrq']))
     if arg.final is not None:
@@ -175,6 +213,7 @@ def main():
         cons = None
     #
     run(arg, par, cons=cons)
+    #
 
 if __name__=='__main__':
     main()

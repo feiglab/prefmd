@@ -17,6 +17,7 @@ mdruns=5
 mdsteps=15000000    # 30ns
 tmpdir=/tmp
 kcons=0.05
+bottom=0.0
 
 while :; do
   case $1 in 
@@ -41,6 +42,12 @@ while :; do
     --kcons)
       if [ -n "$2" ]; then
         kcons=$2
+        shift
+      fi
+      ;;
+    --flat_bottom)
+      if [ -n "$2" ]; then
+        bottom=$2
         shift
       fi
       ;;
@@ -112,7 +119,11 @@ genPSF.pl -crdout md.prod.crd md.prod.init.pdb > md.prod.psf
 
 par="param=22x,xpar=$parfile,xtop=$topfile,dyntstep=0.002,dynsteps=$mdsteps,dynoutfrq=5000,dyntemp=298,lang=1,langfbeta=0.01,langupd=0,openmm,dyneqfrq=0,boxshape=$boxshape,$boxsize,periodic,dyntrfrq=0"
 
-cons=`echo $kcons | awk '{printf("ca iniref.seg.pdb 0:9999_%1.5f",$1);}'`
+if [[ $bottom > 0.0 ]]; then
+    cons=`echo $kcons $bottom | awk '{printf("ca iniref.seg.pdb 0:9999_%1.5f_%02.5f", $1, $2);}'`
+else
+    cons=`echo $kcons | awk '{printf("ca iniref.seg.pdb 0:9999_%1.5f",$1);}'`
+fi
 
 convpdb.pl -nsel protein -setchain "A" -setall md.prod.init.pdb > solute.pdb
 convpdb.pl -nsel CA solute.pdb > solute.ca.pdb

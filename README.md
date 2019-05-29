@@ -41,17 +41,21 @@
 2.2. Run PREFMD
  * If you are using CHARMM full version and have compiled with OpenMM, then use $PREFMD/scripts/prefmd.sh
     * $PREFMD/scripts/prefmd.sh [options] [INPUT PDB] > [REFINED PDB]
- * If you are using CHARMM lite version, then use $PREFMD/scripts/prefmd_OpenMM.sh
+ * If you are using CHARMM lite version or want to use a simplified version of CASP13 protocol with flat-bottom harmonic
+ restraint, then use $PREFMD/scripts/prefmd_OpenMM.sh
     * $PREFMD/scripts/prefmd_OpenMM.sh [options] [INPUT PDB] > [REFINED PDB]
  * List of options
     * -c/--cpus: Number of CPUs to be used (default: 8)
     * -g/--gpu : GPU ID to be used (default: 0) 
     * --mdsteps: Number of MD steps for each MD trajectories (default: 15000000 (30ps))
-    * --kcons  : Force constant for positional restraints (default: 0.05 kcal/mol/A^2)
     * --mdruns : Number of MD trajectories to be generated (default: 5)
     * --tmpdir : Temporary directory path to store generated files
+    * --kcons  : Force constant for positional restraints (default: 0.05 kcal/mol/A^2)
+    * --flat_bottom: Width of a restraint-free region for flat-bottom harmonic restraints. (optional)
+    The PREFMD will run with a simplified version of CASP13 protocol (recommended value is 4.0), if it is provided. 
 
 ## 3. Release log
+ * May, 2019: Updated to support flat-bottom harmonic restraint (--flat_bottom)
  * Jul, 2017: The first release of PREFMD
 
 ## 4. References

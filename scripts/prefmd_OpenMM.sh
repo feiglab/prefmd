@@ -72,6 +72,11 @@ while :; do
   esac
   shift
 done
+
+if [[ $bottom < 0.0 ]]; then
+    echo "Width of a restraint-free region for flat-bottom harmonic restraints should be positive!"
+    exit -1
+fi
           
 inp=$1
 

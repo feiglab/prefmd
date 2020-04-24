@@ -8,8 +8,8 @@ if [ $# -eq 0 ]; then
 fi
 
 CHARMMEXEC0=$CHARMMEXEC
-topfile=top.rtf # see README.md
-parfile=par.prm # see README.md
+topfile=`pwd`/top.rtf # see README.md
+parfile=`pwd`/par.prm # see README.md
 
 cpus=8
 gpu=0

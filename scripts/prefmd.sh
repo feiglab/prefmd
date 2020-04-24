@@ -3,8 +3,8 @@
 # Michael Feig, Michigan State University, 2017
 
 CHARMMEXEC0=$CHARMMEXEC
-topfile=top.rtf # see README.md
-parfile=par.prm # see README.md
+topfile=`pwd`/top.rtf # see README.md
+parfile=`pwd`/par.prm # see README.md
 
 cpus=8
 gpu=0

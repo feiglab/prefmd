@@ -3,8 +3,8 @@
 # Michael Feig, Michigan State University, 2017
 
 CHARMMEXEC0=$CHARMMEXEC
-topfile=/apps/mmtsb/data/charmm/top_all36_prot_water.rtf 
-parfile=/apps/mmtsb/data/charmm/par_all36_prot_mod_water.prm
+topfile=top.rtf # see README.md
+parfile=par.prm # see README.md
 
 cpus=8
 gpu=0

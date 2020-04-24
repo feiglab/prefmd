@@ -35,6 +35,29 @@
  * Then, put those environments to the shell
     * source $PREFMD/scripts/prefmd.bashrc
 
+1.4. Preparing force field files
+ * The scripts require force field files for protein residues, ions, and water
+    The scripts prefmd.sh and prefmd_OpenMM.sh expect single CHARMM style topology and parameter files.
+    Force field file names are given at the top of scripts are set to 'top.rtf' and 'par.prm'.
+    These files are *NOT* provide with this distribution or with CHARMM and need to be generated.
+
+    In principle any force field can be used but we recommend the CHARMM force field.
+    CHARMM force field files are available from the CHARMM distribution (in the toppar directory).
+
+    CHARMM provides protein force field files separately from water and ions.
+    For example, the CHARMM c36 protein force field is found in the files:
+        toppar/top_all36_prot.rtf
+        toppar/par_all36_prot.prm
+
+    while water and ion parameters are in a stream file:
+        toppar/toppar_water_ions.str
+
+    A utility (makeff.pl) is provided to combine those files and generated default files 'top.rtf' and 'par.prm'.
+
+    In order to use other force fields the input files may need to be prepared manually and/or
+    the prefmd.sh/prefmd_OpenMM.sh scripts may need to be modified.
+
+
 ## 2. How to use PREFMD
 2.1. Prepare a input protein structure in PDB format
 2.2. Run PREFMD
@@ -58,7 +81,7 @@
  * Jul, 2017: The first release of PREFMD
 
 ## 4. References
- * L. Heo and M. Feig, PREFMD: a web server for protein structure refinement via molecular dynamics simulations, submitted.
+ * L. Heo and M. Feig, PREFMD: a web server for protein structure refinement via molecular dynamics simulations, Bioinformatics (2018) 34, 1063-1065.
 
 ## 5. Contact
- * feig@msu.edu
+ * mfeiglab@gmail.com

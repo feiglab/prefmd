@@ -91,11 +91,11 @@ class CHARMMcons:
         else:
             self.bottom_radius = 0.0
 
-def construct_restraint(psf, cons, ref):
+def construct_restraint(psf, cons, ref, R):
     if cons.bottom_radius == 0.0:
-        restraint = CustomExternalForce("k0*dsq ; dsq=((x-x0)^2+(y-y0)^2+(z-z0)^2)")
+        restraint = CustomExternalForce("k0*dsq ; dsq=periodicdistance(x,y,z, x0,y0,z0)^2")
     else:
-        restraint = CustomExternalForce("k0*(max(d-d0, 0.0))^2 ; d=sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)")
+        restraint = CustomExternalForce("k0*(max(d-d0, 0.0))^2 ; d=periodicdistance(x,y,z, x0,y0,z0)")
         restraint.addGlobalParameter("d0", cons.bottom_radius*angstroms)
 
     restraint.addPerParticleParameter("x0")
@@ -155,7 +155,7 @@ def run(arg, par, cons=None):
         integrator = None
     #
     if cons is not None:
-        system.addForce(construct_restraint(psf, cons, ref))
+        system.addForce(construct_restraint(psf, cons, ref, pdb.positions))
     #
     simulation = Simulation(psf.topology, system, integrator)
     simulation.context.setPositions(pdb.positions)

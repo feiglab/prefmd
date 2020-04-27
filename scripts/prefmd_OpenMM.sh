@@ -7,7 +7,10 @@ if [ $# -eq 0 ]; then
     exit -1
 fi
 
-CHARMMEXEC0=$CHARMMEXEC
+CHARMMEXECSINGLE=$CHARMMEXEC      # serial executable
+CHARMMEXECMPI=$CHARMMEXEC         # MPI executable
+
+
 topfile=`pwd`/top.rtf # see README.md
 parfile=`pwd`/par.prm # see README.md
 
@@ -15,7 +18,8 @@ cpus=8
 gpu=0
 mdruns=5
 mdsteps=15000000    # 30ns
-tmpdir=/tmp
+#tmpdir=/tmp
+tmpdir=.
 kcons=0.05
 bottom=0.0
 
@@ -93,14 +97,14 @@ cd $tmpdir/$tag
 # initial prep
 /bin/cp $pwd/$inp init0.pdb
 convpdb.pl -out generic -setchain "A" -setall -cleanaux -nsel protein -orient init0.pdb > init.pdb
-export CHARMMEXEC=$CHARMMEXEC0
+export CHARMMEXEC=$CHARMMEXECSINGLE
 locprefmd.sh init.pdb > iniref.pdb
 convpdb.pl -center iniref.pdb > iniref.center.pdb
 convpdb.pl -segnames iniref.center.pdb > iniref.seg.pdb
 convpdb.pl -nsel CA -readseg iniref.seg.pdb > caref.pdb
 
 # equilibration
-export CHARMMEXEC="mpirun -np $cpus $CHARMMEXEC0"
+export CHARMMEXEC="mpirun -np $cpus $CHARMMEXECMPI"
 equiCHARMM.pl -par param=22x,xpar=$parfile,xtop=$topfile -neutralize -cutoff 9 -cons cab iniref.seg.pdb 0:9999_0.5 iniref.center.pdb
 
 grep CRYSTAL -A 2 md.equi.3.restart | tail -n+2 | sed -e "s/D/E/g" | awk '{printf " %s %s %s", $1, $2, $3}' | awk '{printf "X= %f\nY= %f\nZ= %f\n", $1, $3, $6}' > boxsize
@@ -114,13 +118,14 @@ boxsize="boxx=$boxx,boxy=$boxy,boxz=$boxz"
 
 # to generate PDB files for OpenMM runs
 trX=$(echo $boxx/2 | bc -l)
-trY=$(echo $boxx/2 | bc -l)
-trZ=$(echo $boxx/2 | bc -l)
+trY=$(echo $boxy/2 | bc -l)
+trZ=$(echo $boxz/2 | bc -l)
 mv iniref.seg.pdb iniref.seg.0.pdb
 convpdb.pl -readseg -segnames -translate $trX $trY $trZ iniref.seg.0.pdb > iniref.seg.pdb
 convpdb.pl -readseg -segnames -translate $trX $trY $trZ md.equi.3.pdb > md.prod.init.pdb
 
-genPSF.pl -crdout md.prod.crd md.prod.init.pdb > md.prod.psf
+genPSF.pl -par param=22x,xpar=$parfile,xtop=$topfile -crdout md.prod.crd md.prod.init.pdb > md.prod.psf
+awk 'BEGIN {show=1;} /MOLNT/ {show=0;} /NCRTERM/ {show=1;} show == 1 {print}' md.prod.psf > md.prod.openmm.psf
 
 par="param=22x,xpar=$parfile,xtop=$topfile,dyntstep=0.002,dynsteps=$mdsteps,dynoutfrq=5000,dyntemp=298,lang=1,langfbeta=0.01,langupd=0,openmm,dyneqfrq=0,boxshape=$boxshape,$boxsize,periodic,dyntrfrq=0"
 
@@ -136,7 +141,7 @@ nsol=`grep ATOM solute.pdb | wc -l`
 awk '/ATOM/ {print $2}' solute.ca.pdb > ca.list
 
 for run in $(seq 1 $mdruns); do
-  mdOpenMM.py -par $par -cons $cons -restout md.$run.restart -trajout md.$run.dcd -log md.$run.log -final md.$run.pdb -psf md.prod.psf md.prod.crd md.prod.init.pdb
+  mdOpenMM.py -par $par -cons $cons -restout md.$run.restart -trajout md.$run.dcd -log md.$run.log -final md.$run.pdb -psf md.prod.openmm.psf md.prod.crd md.prod.init.pdb
   mdconv -out solute.$run.dcd -atoms 1:$nsol md.$run.dcd 
   mdconv -atomlist ca.list -out solca.$run.dcd solute.$run.dcd 
 done
@@ -165,10 +170,10 @@ averagerefine.pl ens irmsd0 rwplus $skip
 
 convpdb.pl -center average.pdb | convpdb.pl -segnames > avg.center.pdb
 
-export CHARMMEXEC="mpirun -np $cpus $CHARMMEXEC0"
+export CHARMMEXEC="mpirun -np $cpus $CHARMMEXECMPI"
 equiCHARMM.pl -par param=22x,xpar=$parfile,xtop=$topfile -neutralize -cutoff 9 -prefix avg -densitysteps 2000 -equi 50:1000=100:1000=200:1000=250:1000=298:5000 -cons ca avg.center.pdb 0:9999_10 avg.center.pdb
 
-export CHARMMEXEC=$CHARMMEXEC0
+export CHARMMEXEC=$CHARMMEXECSINGLE
 convpdb.pl -nsel protein -setchain " " -setall avg.heat.298.pdb > avg.protein.pdb
 locprefmd.sh avg.protein.pdb > avg.clean.pdb
 locprefmd.sh avg.clean.pdb > avg.clean2.pdb
